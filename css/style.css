@@ -1,0 +1,292 @@
+/* A hologram only works dark, so this page commits to one look. */
+:root {
+  --bg:#04060c; --bg2:#080d18; --fg:#e8f3ff; --dim:#7f93ad; --faint:#3d4d63;
+  --line:#15202f;
+  /* --faint is for lines and borders only; it is 2.3:1 on the background */
+  --mark:#51708c;   /* quiet marks in charts: averages, Awake, Not interacted */
+  --cy:#34e0ff; --move:#34e0ff; --heart:#ff5c8a; --sleep:#a78bff;
+  --sound:#ffb454; --fuel:#3ce8a6;
+  --hud:'Chakra Petch','IBM Plex Sans',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--body);
+       -webkit-font-smoothing:antialiased; }
+
+/* ---- the figure owns the screen ---- */
+.stage { position:relative; height:100vh; min-height:560px; overflow:hidden;
+         background:
+           radial-gradient(85% 55% at 50% 0%, #0d1830 0%, transparent 62%),
+           linear-gradient(180deg, var(--bg2), var(--bg)); }
+#gl { display:block; width:100%; height:100%; touch-action:none; cursor:grab; }
+#gl.dragging { cursor:grabbing; }
+
+.frame { position:absolute; inset:14px; pointer-events:none; }
+.frame i { position:absolute; width:18px; height:18px; border:1px solid var(--faint); }
+.frame i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0}
+.frame i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0}
+.frame i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0}
+.frame i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0}
+
+.topbar { position:absolute; top:0; left:0; right:0; display:flex; gap:20px;
+          align-items:flex-start; justify-content:space-between;
+          padding:30px max(26px, env(safe-area-inset-right,0px)) 0
+                  max(26px, env(safe-area-inset-left,0px));
+          pointer-events:none; }
+.eyebrow { font-family:var(--hud); font-size:.75rem; font-weight:500; letter-spacing:.22em;
+           text-transform:uppercase; color:var(--cy); }
+h1 { font-family:var(--hud); font-weight:500; font-size:2.125rem; margin:5px 0 0;
+     letter-spacing:-.01em; }
+.since { margin:7px 0 0; font-size:.875rem; color:var(--dim); }
+.since b { color:var(--fg); font-weight:500; font-variant-numeric:tabular-nums; }
+.since b, #upd { white-space:nowrap; }
+.tools { display:flex; flex-direction:column; align-items:flex-end; gap:12px; flex-shrink:0; }
+@media (max-width: 700px) {
+  /* the title and subtitle cross the figure here; a scrim keeps them readable */
+  .topbar { padding-bottom:28px;
+            background:linear-gradient(180deg, rgba(4,6,12,.9) 0%, rgba(4,6,12,.78) 70%,
+                                       rgba(4,6,12,0) 100%); }
+}
+@media (max-width: 480px) {
+  .topbar { flex-wrap:wrap; row-gap:16px; }
+  .tools { flex-direction:row; flex-wrap:wrap; gap:10px; align-items:center;
+           justify-content:space-between; width:100%; }
+}
+
+.range { display:flex; gap:0; flex-shrink:0; pointer-events:auto;
+         border:1px solid var(--line); border-radius:2px; }
+.range button { all:unset; cursor:pointer; font-family:var(--hud); font-size:.75rem;
+                font-weight:500;
+                letter-spacing:.08em; padding:8px 14px; color:var(--dim); white-space:nowrap;
+                border-right:1px solid var(--line); transition:color .15s, background .15s; }
+.range button:last-child { border-right:0; }
+.range button:hover { color:var(--fg); }
+.range button[aria-pressed="true"] { color:var(--bg); background:var(--cy); }
+/* the ring sits inside the button; on the cyan pressed button it is dark */
+.range button:focus-visible { outline:2px solid var(--cy); outline-offset:-4px; }
+.range button[aria-pressed="true"]:focus-visible { outline-color:var(--bg); }
+
+/* ---- the callout, tethered to the body part ---- */
+.leader { position:absolute; inset:0; pointer-events:none; overflow:visible; }
+.leader polyline { fill:none; stroke:var(--accent,var(--cy)); stroke-width:1.25;
+                   opacity:.95; }
+.leader circle { fill:var(--accent,var(--cy)); }
+
+.callout { position:absolute; width:252px; pointer-events:none; z-index:4;
+           background:rgba(6,11,20,.92); border:1px solid var(--accent,var(--cy));
+           border-radius:3px; padding:13px 15px 14px;
+           box-shadow:0 10px 34px rgba(0,0,0,.55); }
+.callout.pinned { pointer-events:auto; }
+/* under 700px wide js/ui.js docks the box full width, above the chips or below the top bar */
+.callout.docked { width:auto; right:16px; max-width:30rem; }
+.callout.tight { padding:9px 13px 10px; }
+.callout.tight .co-spark, .callout.tight .co-sl, .callout.tight .co-go { display:none; }
+.callout.tight .co-dl { margin-top:6px; gap:2px 10px; }
+.co-zone { font-family:var(--hud); font-size:.75rem; font-weight:500; letter-spacing:.08em;
+           text-transform:uppercase; color:var(--dim); }
+.co-name { font-family:var(--hud); font-weight:500; font-size:1.1875rem; margin-top:2px;
+           color:var(--accent,var(--cy)); line-height:1.15; }
+.co-dl { margin:11px 0 0; display:grid; grid-template-columns:1fr auto;
+         gap:6px 10px; }
+.co-dl dt { font-size:.8125rem; color:var(--dim); align-self:center; }
+.co-dl dd { margin:0; font-family:var(--hud); font-size:.875rem; text-align:right;
+            font-variant-numeric:tabular-nums; font-weight:500; }
+.co-spark { margin-top:11px; height:30px; }
+.co-spark svg { display:block; width:100%; height:30px; overflow:visible; }
+.co-sl { font-family:var(--hud); font-size:.75rem; font-weight:500; letter-spacing:.08em;
+         text-transform:uppercase; color:var(--dim); margin-top:4px; }
+.co-go { margin-top:11px; padding-top:9px; border-top:1px solid var(--line);
+         font-family:var(--hud); font-size:.75rem; font-weight:500; letter-spacing:.08em;
+         text-transform:uppercase; color:var(--dim); }
+
+/* ---- helper chips ---- */
+.zones { position:absolute; left:0; right:0; bottom:26px; display:flex;
+         flex-wrap:wrap; gap:7px; justify-content:center; padding:0 26px;
+         z-index:3; }
+.zone { all:unset; cursor:pointer; font-family:var(--hud); font-size:.8125rem;
+        letter-spacing:.04em; padding:8px 15px; border:1px solid var(--line);
+        border-radius:2px; color:var(--dim); display:inline-flex; align-items:center;
+        gap:8px; background:rgba(6,11,20,.72);
+        transition:color .16s, border-color .16s, background .16s; }
+.zone:hover { color:var(--fg); border-color:var(--c); }
+.zone[aria-pressed="true"] { color:var(--fg); border-color:var(--c);
+                             background:rgba(12,20,34,.95); }
+.zone:focus-visible { outline:1px solid var(--cy); outline-offset:2px; }
+/* on narrow screens the chip keeps the data name and drops the body part, which the
+   figure and the callout already show */
+@media (max-width: 44em) { .zone .zn { display:none; } }
+.zone s { width:7px; height:7px; border-radius:50%; background:var(--c);
+          box-shadow:0 0 8px var(--c); }
+
+/* the hint sits in the chip bar: at its left edge on wide screens, on its own row below
+   the chips when they would run into it */
+.hint { position:absolute; left:26px; top:50%; transform:translateY(-50%); font-family:var(--hud);
+        font-size:.75rem; font-weight:500; letter-spacing:.08em; text-transform:uppercase;
+        color:var(--dim); pointer-events:none; }
+/* in em, so a larger browser font moves the hint off the chips sooner; the chips
+   carry data names and body parts, so they reach the hint below about 1520px */
+@media (max-width: 95em) {
+  .hint { position:static; transform:none; order:1; flex-basis:100%; text-align:center;
+          margin-top:2px; }
+}
+
+/* ---- notes below the fold ---- */
+.below { padding-left:max(26px, env(safe-area-inset-left,0px));
+         padding-right:max(26px, env(safe-area-inset-right,0px));
+         padding-block:34px 48px; max-width:1180px; margin-inline:auto;
+         display:grid; gap:22px;
+         grid-template-columns:repeat(auto-fit, minmax(min(100%,17rem),1fr));
+         border-top:1px solid var(--line); }
+.below h2 { font-family:var(--hud); font-size:.75rem; letter-spacing:.18em;
+            text-transform:uppercase; color:var(--cy); margin:0 0 7px; font-weight:500; }
+.below p { margin:0; font-size:.875rem; color:var(--dim); line-height:1.6; }
+.nogl { padding:40px 26px; color:var(--dim); font-size:.875rem; }
+@media (prefers-reduced-motion: reduce) {
+  .zone, .range button, .tblbox::after { transition:none; }
+}
+/* ---- detail pages ---- */
+.page { display:none; padding-left:max(26px, env(safe-area-inset-left,0px));
+        padding-right:max(26px, env(safe-area-inset-right,0px));
+        padding-block:26px 56px; max-width:1240px; margin-inline:auto; }
+.page.on { display:block; }
+.pagehead { display:flex; align-items:flex-end; justify-content:space-between;
+            gap:20px; flex-wrap:wrap; border-bottom:1px solid var(--line);
+            padding-bottom:18px; }
+.backlink { all:unset; cursor:pointer; font-family:var(--hud); font-size:.75rem;
+            font-weight:500;
+            letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+.backlink:hover { color:var(--fg); }
+.backlink:focus-visible { outline:1px solid var(--cy); outline-offset:3px; }
+.page h1 { font-family:var(--hud); font-weight:500; font-size:1.875rem; margin:8px 0 0;
+           letter-spacing:0; color:var(--accent,var(--cy)); }
+/* focus lands on the heading when a page opens; it is not a control, so no ring */
+.page h1:focus { outline:none; }
+/* the range group and the Data button, moved here from the top bar by js/ui.js */
+.pagehead .tools { flex-direction:row; align-items:center; gap:10px; }
+@media (max-width: 480px) {
+  .pagehead .tools { width:100%; justify-content:space-between; }
+}
+.page .sub { margin:4px 0 0; font-size:.875rem; color:var(--dim); }
+.kpis { display:grid; gap:10px; margin:22px 0 0;
+        grid-template-columns:repeat(auto-fit, minmax(min(100%,10rem),1fr)); }
+.kpi { border:1px solid var(--line); border-radius:3px; padding:13px 15px;
+       background:var(--bg2); }
+.kpi .k { font-size:.8125rem; color:var(--dim); }
+.kpi .v { margin-left:0; }
+.kpi .v { font-family:var(--hud); font-size:1.5625rem; font-weight:500; margin-top:3px;
+          font-variant-numeric:tabular-nums; color:var(--accent,var(--cy)); }
+.cards { display:grid; gap:14px; margin-top:14px;
+                  /* two columns at most; js/ui.js widens a card left alone in its row */
+         grid-template-columns:repeat(auto-fit, minmax(min(100%, max(24rem, calc(50% - 7px))), 1fr)); }
+.card { border:1px solid var(--line); border-radius:3px; padding:16px 18px 18px;
+        background:var(--bg2); min-width:0; position:relative; }
+.card.wide { grid-column:1/-1; }
+.card h2 { font-family:var(--hud); font-size:.9375rem; font-weight:500; margin:0; }
+.card .note { font-size:.875rem; color:var(--dim); margin:5px 0 0; line-height:1.5; }
+.plot { margin-top:12px; }
+.plot svg { display:block; width:100%; overflow:visible; }
+.plot text { font-family:var(--hud); font-size:.75rem; font-weight:500; fill:var(--dim); }
+.plot .grid line { stroke:#16222f; }
+.plot .axis line, .plot .axis path { stroke:#24364a; }
+.empty { font-size:.875rem; color:var(--dim); padding:26px 0; text-align:center; }
+.tblbox { position:relative; margin-top:12px; }
+.tbl { max-height:22rem; overflow:auto; }
+/* fades the right edge while columns are hidden off to the side */
+.tblbox::after { content:''; position:absolute; top:0; right:0; bottom:0; width:40px;
+                 pointer-events:none; opacity:0; transition:opacity .15s;
+                 background:linear-gradient(90deg, rgba(8,13,24,0), var(--bg2)); }
+.tblbox.more::after { opacity:1; }
+table { width:100%; border-collapse:collapse; font-size:.875rem;
+        font-variant-numeric:tabular-nums; }
+thead th { position:sticky; top:0; background:var(--bg2); text-align:left;
+           padding:7px 8px; border-bottom:1px solid var(--line); white-space:nowrap;
+           font-family:var(--hud); font-size:.75rem; font-weight:500; color:var(--dim); }
+tbody td { padding:6px 8px; text-align:left; white-space:nowrap;
+           border-bottom:1px solid #101a26; color:var(--fg); }
+thead th.n, tbody td.n { text-align:right; }
+tbody tr.pick { cursor:pointer; }
+/* the date in a pickable row is a button, styled as the text it replaces */
+.rowpick { all:unset; cursor:pointer; }
+.rowpick:focus-visible { outline:1px solid var(--cy); outline-offset:3px; }
+tbody tr.on { background:rgba(52,224,255,.14); }
+tbody tr.on td:first-child { box-shadow:inset 2px 0 0 var(--accent,var(--cy)); }
+.routes { display:grid; gap:8px; margin-top:12px;
+          grid-template-columns:repeat(auto-fit, minmax(min(100%,7.5rem),1fr)); }
+.rt { all:unset; cursor:pointer; display:block; border:1px solid var(--line);
+      border-radius:3px; padding:5px; }
+.rt.on { border-color:var(--accent,var(--cy)); }
+.rt:focus-visible { outline:1px solid var(--cy); outline-offset:2px; }
+.rt .cap { font-family:var(--hud); font-size:.75rem; font-weight:500; color:var(--dim); text-align:center;
+           margin-top:3px; font-variant-numeric:tabular-nums; }
+.legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; font-size:.75rem; font-weight:500;
+          color:var(--dim); }
+.legend i { width:9px; height:9px; border-radius:2px; display:inline-block;
+            margin-right:5px; vertical-align:-1px; }
+.dl2 { display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin-top:12px;
+       font-size:.875rem; }
+.dl2 dt { color:var(--dim); }
+.dl2 dd { margin:0; font-variant-numeric:tabular-nums; }
+/* read by screen readers, not shown: the one-line summary under each chart */
+.vh { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+      clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+/* ---- the Data sheet ---- */
+.datab, .pause { all:unset; pointer-events:auto; cursor:pointer;
+         font-family:var(--hud); font-size:.75rem; font-weight:500; letter-spacing:.12em;
+         text-transform:uppercase; padding:8px 14px; border:1px solid var(--line);
+         border-radius:2px; color:var(--dim); background:rgba(6,11,20,.72); }
+.datab:hover, .pause:hover { color:var(--fg); border-color:var(--cy); }
+.datab:focus-visible, .pause:focus-visible { outline:1px solid var(--cy); outline-offset:2px; }
+.pause[hidden] { display:none; }
+/* pressed: motion is stopped */
+.pause[aria-pressed="true"] { color:var(--fg); border-color:var(--cy); }
+/* the figure is not drawn behind a region page, so there is nothing to pause */
+.pagehead .pause { display:none; }
+.sh-back { position:fixed; inset:0; z-index:20; background:rgba(2,4,9,.62); }
+.sheet { position:fixed; top:0; right:0; bottom:0; z-index:21; overflow:auto;
+         width:min(26rem, 100%); background:var(--bg2); border-left:1px solid var(--line);
+         padding:22px max(22px, env(safe-area-inset-right,0px)) 32px 22px;
+         box-shadow:-18px 0 48px rgba(0,0,0,.5); }
+.sh-back[hidden], .sheet[hidden] { display:none; }
+.sh-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.sheet h2 { font-family:var(--hud); font-weight:500; font-size:1.375rem; margin:0;
+            color:var(--cy); }
+.sh-x { all:unset; cursor:pointer; font-size:1.5rem; line-height:1; color:var(--dim);
+        padding:8px 12px; border-radius:2px; }
+.sh-x:hover { color:var(--fg); }
+.sh-x:focus-visible { outline:1px solid var(--cy); }
+.sheet h2:focus { outline:none; }
+.sh-status { margin:12px 0 0; font-size:.875rem; color:var(--fg); line-height:1.55; }
+.sh-msg { margin:12px 0 0; font-size:.875rem; line-height:1.55; color:var(--dim); }
+.sh-msg:empty { display:none; }
+.sh-msg.good { color:var(--fuel); }
+.sh-msg.bad { color:var(--heart); }
+.sheet section { margin-top:22px; padding-top:16px; border-top:1px solid var(--line); }
+.sheet h3 { font-family:var(--hud); font-size:.75rem; letter-spacing:.18em;
+            text-transform:uppercase; color:var(--dim); margin:0 0 10px; font-weight:500; }
+.sh-note { margin:9px 0 0; font-size:.875rem; color:var(--dim); line-height:1.55; }
+.drop { display:block; cursor:pointer; padding:22px 16px; text-align:center;
+        border:1px dashed var(--faint); border-radius:3px; font-size:.875rem;
+        color:var(--fg); transition:border-color .15s, background .15s; }
+.drop:hover, .drop.over { border-color:var(--cy); background:rgba(52,224,255,.06); }
+.drop:focus-within { outline:1px solid var(--cy); outline-offset:2px; }
+.drop input, .sh-btn input { position:absolute; width:1px; height:1px; opacity:0; }
+.sh-row { display:flex; flex-wrap:wrap; gap:8px; }
+.sh-btn { all:unset; position:relative; cursor:pointer; font-family:var(--hud);
+          font-size:.8125rem; font-weight:500; letter-spacing:.06em; padding:8px 14px;
+          border:1px solid var(--line); border-radius:2px; color:var(--fg); }
+.sh-btn:hover { border-color:var(--cy); }
+.sh-btn:focus-visible, .sh-btn:focus-within { outline:1px solid var(--cy); outline-offset:2px; }
+/* disabled: --dim text instead of --fg, and a dashed edge */
+.sh-btn:disabled, .sh-btn:has(input:disabled) { cursor:default; color:var(--dim);
+                                                 border-color:var(--line); border-style:dashed; }
+.sh-warn { color:var(--heart); }
+.sh-warn:hover { border-color:var(--heart); }
+/* the Erase and Restore questions, set off from the buttons that open them */
+.sh-confirm, .sh-rconfirm { margin-top:12px; padding:2px 0 2px 12px;
+                            border-left:2px solid var(--heart); }
+.sh-confirm .sh-row, .sh-rconfirm .sh-row { margin-top:10px; }
+.sheet[aria-busy="true"] .drop, .sheet[aria-busy="true"] .sh-btn { opacity:.5; cursor:progress; }
+@media (prefers-reduced-motion: reduce) {
+  .drop { transition:none; }
+}

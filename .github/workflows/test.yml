@@ -1,0 +1,46 @@
+name: test
+
+# .github/workflows/pages.yml calls this on a push to main, so the suite runs
+# there once, before the site is published
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Python tools compile
+        run: python -m py_compile tools/ingest.py tools/make_sample.py
+
+      # make_sample.py is seeded; a diff means the sample or fixtures drifted
+      - name: Sample and fixtures regenerate byte for byte
+        run: |
+          python tools/make_sample.py
+          git diff --exit-code -- data/sample.json test/fixtures/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # make_icons.js traces icon.svg with no browser; a diff means the icon drifted
+      - name: Icon SVG regenerates byte for byte
+        run: |
+          node tools/make_icons.js --svg-only
+          git diff --exit-code -- icons/icon.svg
+
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+        env:
+          CI: "1"

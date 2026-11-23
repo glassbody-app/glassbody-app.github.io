@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- what the page may load; test/regression.spec.js fails on any violation. Inline
+     style is allowed because ui.js writes style attributes into its chart legends. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Glassbody</title>
+<!-- link previews need absolute URLs, so these name the hosted site even when served locally -->
+<meta name="description" content="Your Apple Health export on a rotating figure. Read and kept in your browser; nothing is uploaded.">
+<link rel="canonical" href="https://glassbody-app.github.io/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Glassbody">
+<meta property="og:title" content="Glassbody">
+<meta property="og:description" content="Your Apple Health export on a rotating figure. Read and kept in your browser; nothing is uploaded.">
+<meta property="og:url" content="https://glassbody-app.github.io/">
+<meta property="og:image" content="https://glassbody-app.github.io/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Glassbody figure, a glowing body split into five regions, with the sample data loaded.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#04060c">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <canvas id="gl" aria-label="Rotating figure. Use the region buttons at the bottom to choose a region."></canvas>
+  <div class="frame"><i></i><i></i><i></i><i></i></div>
+  <svg class="leader" id="leader" aria-hidden="true"></svg>
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">Apple Health</div>
+      <h1>Glassbody</h1>
+      <p class="since">Everything recorded since <b id="d0">&mdash;</b>
+        &middot; <b id="dn">&mdash;</b>&nbsp;days so far<span id="upd"></span></p>
+    </div>
+    <!-- js/data-panel.js adds the Data button here, after the range -->
+    <div class="tools" id="tools">
+      <div class="range" id="range" role="group" aria-label="Date range"></div>
+      <!-- js/holo.js shows it once the figure is drawing -->
+      <button type="button" class="pause" id="pause" aria-pressed="false" hidden>Pause motion</button>
+    </div>
+  </div>
+  <!-- js/ui.js appends the region chips after the hint -->
+  <div class="zones" id="zones"><div class="hint" aria-hidden="true">Drag &middot; scroll &middot; hover</div></div>
+</div>
+
+<main id="pages"></main>
+
+<div class="below" id="below">
+  <div>
+    <h2>What this is</h2>
+    <p>The figure is a low-poly anatomical model, not a scan of you. Regions are a way to
+      group the data; the shape itself carries no measurement. Arms sit with the chest
+      because the watch reads your pulse at the wrist.</p>
+  </div>
+  <div>
+    <h2>The record</h2>
+    <p>Every reading you import is kept in this browser, and the range control only
+      changes what is shown. Each new export is merged in, so "All" grows over time.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.min.js"
+  integrity="sha512-vnmn/Qqn6aG0POAc9mIGzjq0IybrvxJXYDafNvp9JSnDGxeF3pbkSqLvf+YGd5ku63pT7sa/jxHn7/d0mU8+tA==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"
+  integrity="sha512-vc58qvvBdrDR4etbxMdlTt4GBQk1qjvyORR2nrsPsFPyrs+/u5c3+1Ct6upOgdZoIl7eq6k3a1UPDSNAQi/32A==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+  integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous"></script>
+<!-- order matters: store, ingest, holo, ui, data-panel -->
+<script src="js/store.js"></script>
+<script src="js/ingest.js"></script>
+<script src="js/holo.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/data-panel.js"></script>
+<script src="js/sw-register.js"></script>
+</body>
+</html>

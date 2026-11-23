@@ -1,0 +1,54 @@
+# Publishes the site to GitHub Pages (docs/specs/glassbody-v1.md, section 5.5):
+# the test workflow first, then only the page's files and its link-preview image.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# one deployment at a time, and one already running is never cut off
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    # named here as well: GitHub's reusable-workflow reference says a calling job
+    # without its own permissions gives the called workflow the default token permissions
+    permissions:
+      contents: read
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # test/offline.spec.js serves the same list as SITE_FILES, and a test there
+      # compares the two. Fixtures, tools, tests and the STL stay out of the site.
+      - name: Copy the site's files into _site
+        run: |
+          mkdir -p _site/data
+          cp -R index.html manifest.webmanifest sw.js css js fonts icons img _site/
+          cp data/body.json data/sample.json _site/data/
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v5

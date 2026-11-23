@@ -1,0 +1,9 @@
+# Python 3.13. tools/ingest.py and tools/make_sample.py use only the standard
+# library, so there is nothing to pip install.
+#
+# tools/refine_figure.py, tools/body_from_stl.py and tools/make_body.py need
+# Blender's bpy; refine_figure.py also uses the numpy 2.3.4 bundled with it.
+# They were run with the Blender 5.2.3 app, from the repo root:
+#   /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/refine_figure.py -- data/raw/astra_figure.stl figure/refined.stl
+#   /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/body_from_stl.py -- figure/refined.stl
+# The bpy wheel from PyPI is the untested alternative (make_body.py docstring).

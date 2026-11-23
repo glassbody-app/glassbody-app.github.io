@@ -1,0 +1,23 @@
+# real health data never belongs here
+*.zip
+!test/fixtures/*.zip
+health*.json
+glassbody-backup-*.json
+body-scan-backup-*.json
+# working files: refined meshes, Blender scratch, other STLs
+figure/
+*.stl
+# the figure's source mesh (README, "The figure")
+!data/raw/astra_figure.stl
+*.part
+# local test copies of CDN libraries
+vendor/
+index.local.html
+node_modules/
+test-results/
+playwright-report/
+# previews from tools/body_from_stl.py or tools/make_body.py --preview
+data/prev_*.png
+__pycache__/
+.DS_Store
+.env
