@@ -14,6 +14,8 @@ module.exports = defineConfig({
     baseURL: 'http://127.0.0.1:' + PORT + '/',
     viewport: { width: 1280, height: 860 },
     browserName: 'chromium',
+    // a failed test leaves a trace in test-results/, which CI uploads
+    trace: 'retain-on-failure',
     // no test is answered by a service worker; test/offline.spec.js allows them for itself
     serviceWorkers: 'block',
     // WebGL without a GPU, through SwiftShader

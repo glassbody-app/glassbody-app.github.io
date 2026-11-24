@@ -144,7 +144,10 @@ test('a new CACHE name in sw.js leaves only the new cache', async ({ page }) => 
   expect(await page.evaluate(() => caches.keys())).toEqual([CACHE]);
   editFile(path.join(site.dir, 'sw.js'), `'${CACHE}'`, '\'glassbody-test-2\'');
   await page.reload();
-  await expect.poll(() => page.evaluate(() => caches.keys())).toEqual(['glassbody-test-2']);
+  // the new worker downloads every file before it takes over: 4 to 6 seconds after
+  // the reload on Linux, past expect.poll's 5-second default
+  await expect.poll(() => page.evaluate(() => caches.keys()), { timeout: 20000 })
+    .toEqual(['glassbody-test-2']);
 });
 
 test('every request the page makes is in SHELL or CDN, but favicon.ico', async ({ page }) => {

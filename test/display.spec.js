@@ -147,7 +147,9 @@ for (const [w, h] of [[390, 844], [320, 640], [320, 568], [640, 400]]) {
         await page.evaluate(() => window.HOLOUI.frame());
         const co = (await boxes(page, '.callout'))[0];
         // focusing a chip can scroll the page, so measure the chips again
-        (await boxes(page, '.zone')).forEach((c) => expect(overlaps(c, co), id).toBe(false));
+        const at = (b) => `${Math.round(b.left)},${Math.round(b.top)}-${Math.round(b.right)},${Math.round(b.bottom)}`;
+        (await boxes(page, '.zone')).forEach((c) =>
+          expect(overlaps(c, co), `${id}: callout ${at(co)} over chip ${at(c)}`).toBe(false));
         expect(co.right, id).toBeLessThanOrEqual(w);
         expect(co.top, id).toBeGreaterThanOrEqual(0);
         expect(co.bottom, id).toBeLessThanOrEqual(h);
@@ -159,7 +161,10 @@ for (const [w, h] of [[390, 844], [320, 640], [320, 568], [640, 400]]) {
         // under 640 tall (320x568, and 1280 at 200% zoom) the band between header and
         // chips can be too short for the box on either side of a mid-body region, so
         // there only the chips and the screen edge are checked
-        if (h >= 640) expect(inside, `${id} anchor under the callout`).toBe(false);
+        if (h >= 640) {
+          expect(inside, `${id} anchor ${Math.round(a.x)},${Math.round(a.y)} under the callout ${at(co)}`)
+            .toBe(false);
+        }
       }
     });
 
